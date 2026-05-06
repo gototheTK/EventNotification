@@ -1,14 +1,33 @@
+# 📂 src/main/resources/application.yml
 spring:
-  application:
-    name: board
+  profiles:
+    active: local # 로컬에서는 H2(local)를, EC2에서는 prod를 씁니다.
+
+---
+spring:
   config:
+    activate:
+      on-profile: local
     import: optional:classpath:/secret/application-secret.yml
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
     username: sa
-    password:
+    password: ""
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+---
+spring:
+  config:
+    activate:
+      on-profile: prod # EC2 운영 환경 세팅
+    import: optional:classpath:/secret/application-secret.yml
+  datasource:
+    url: jdbc:mysql://localhost:3306/event_db?useSSL=false&serverTimezone=Asia/Seoul
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: ${MYSQL_PASSWORD} # 환경변수로 주입
+  jpa:
+    hibernate:
+      ddl-auto: update # 운영에서는 절대 create-drop을 쓰지 않음을 어필!
