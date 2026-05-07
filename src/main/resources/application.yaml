@@ -8,7 +8,6 @@ spring:
   config:
     activate:
       on-profile: local
-    import: optional:classpath:/secret/application-secret.yml
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
