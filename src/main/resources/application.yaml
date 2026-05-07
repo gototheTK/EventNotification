@@ -8,6 +8,7 @@ spring:
   config:
     activate:
       on-profile: local
+      import: "optional:classpath:/secret/application-secret.yml"
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
@@ -21,23 +22,7 @@ spring:
   config:
     activate:
       on-profile: prod # EC2 운영 환경 세팅
-  datasource:
-    url: ${{ secrets.MYSQL_URL }}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${{ secrets.MYSQL_USERNAME }}
-    password: ${{ secrets.MYSQL_PASSWORD }} # 환경변수로 주입
+      import: "optional:classpath:/secret/application-secret.yml"
   jpa:
     hibernate:
       ddl-auto: create # 운영에서는 절대 create-drop을 쓰지 않음을 어필!
-
-
-open-api:
-  seoul:
-    key: ${{ secrets.SEOUL_OPEN_API_KEY}}
-
-jwt:
-  # 💡 Access Token 전용 시크릿 키 (유효기간이 짧은 토큰용)
-  access-secret: ${{ secrets.ACCESS_SECRET_KEY }}
-
-  # 💡 Refresh Token 전용 시크릿 키 (유효기간이 긴 토큰용, 더 철저히 보호되어야 함)
-  refresh-secret: ${{ secrets.REFRESH_SECRET_KEY }}
