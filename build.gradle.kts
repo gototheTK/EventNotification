@@ -60,3 +60,9 @@ allOpen {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+
+
+// 💡 아래 세 줄을 맨 밑에 추가해 주세요! (plain jar 생성 방지)
+tasks.named<Jar>("jar") {
+    enabled = false
+}
