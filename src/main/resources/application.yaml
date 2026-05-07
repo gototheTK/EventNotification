@@ -33,7 +33,7 @@ spring:
 
 open-api:
   seoul:
-    key: ${SEOUL_OPEN_API_KEY}
+    key: ${{ secrets.SEOUL_OPEN_API_KEY}}
 
 jwt:
   # 💡 Access Token 전용 시크릿 키 (유효기간이 짧은 토큰용)
