@@ -8,7 +8,7 @@ spring:
   config:
     activate:
       on-profile: local
-      import: "optional:classpath:/secret/application-secret.yml"
+    import: "optional:classpath:/secret/application-secret.yml" # 💡 앞으로 2칸 뺐습니다!
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
@@ -22,7 +22,7 @@ spring:
   config:
     activate:
       on-profile: prod # EC2 운영 환경 세팅
-      import: "optional:classpath:/secret/application-secret.yml"
+    import: "optional:classpath:/secret/application-secret.yml" # 💡 앞으로 2칸 뺐습니다!
   jpa:
     hibernate:
-      ddl-auto: create # 운영에서는 절대 create-drop을 쓰지 않음을 어필!
+      ddl-auto: update # 🚨 운영 환경의 데이터 보호를 위해 반드시 update로 변경!
