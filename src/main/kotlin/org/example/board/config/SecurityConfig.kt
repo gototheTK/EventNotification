@@ -1,7 +1,6 @@
 package org.example.board.config
 
 import org.example.board.filter.JwtAuthenticationFilter
-import org.example.board.provider.JwtTokenProvider
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -20,6 +19,13 @@ class SecurityConfig(
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
 
         http
+            .cors { corsCustomizer -> corsCustomizer.configurationSource {
+                val config = org.springframework.web.cors.CorsConfiguration()
+                config.allowedOrigins = listOf("http://localhost:5173")
+                config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                config.allowedHeaders = listOf("*")
+                config
+            } }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .formLogin { it.disable() }

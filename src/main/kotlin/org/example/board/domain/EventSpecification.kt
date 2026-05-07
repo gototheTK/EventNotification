@@ -10,22 +10,27 @@ class EventSpecification {
             return Specification { root, _, cb ->
                 val predicates = mutableListOf<Predicate>()
 
-                // 1. 제목 검색 (Like %title%)
-                title?.let {
-                    predicates.add(cb.like(root.get<String>("title"), "%$it%"))
+                // 1. 제목 검색 (Null & 빈 문자열 동시에 방어)
+                title?.takeIf { it.isNotBlank() }?.let {
+                    predicates.add(cb.like(root.get("title"), "%$it%"))
                 }
 
-                // 2. 카테고리 검색 (Value Object인 category 내부 필드 접근)
-                codeName?.let {
+                // 2. 카테고리 검색
+                codeName?.takeIf { it.isNotBlank() }?.let {
                     predicates.add(cb.equal(root.get<Any>("category").get<String>("codeName"), it))
                 }
 
-                // 3. 지역구 검색 (Value Object인 location 내부 필드 접근)
-                guName?.let {
+                // 3. 지역구 검색
+                guName?.takeIf { it.isNotBlank() }?.let {
                     predicates.add(cb.equal(root.get<Any>("location").get<String>("guName"), it))
                 }
 
-                cb.and(*predicates.toTypedArray())
+                // 💡 핵심 최적화: 검색 조건이 하나도 없다면 null을 반환하여 전체 검색 수행
+                if (predicates.isEmpty()) {
+                    null
+                } else {
+                    cb.and(*predicates.toTypedArray())
+                }
             }
         }
     }

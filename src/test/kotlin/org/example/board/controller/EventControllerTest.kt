@@ -1,5 +1,8 @@
 package org.example.board.controller
 
+// 기존 import 문들 (MockMvcRequestBuilders, MockMvcResultMatchers 등)은 유지
+
+// 💡 기존 MockBean 대신 새로운 MockitoBean 패키지를 임포트합니다.
 import org.example.board.dto.EventDetailResponse
 import org.example.board.dto.EventListResponse
 import org.example.board.filter.JwtAuthenticationFilter
@@ -7,21 +10,22 @@ import org.example.board.provider.JwtTokenProvider
 import org.example.board.service.EventService
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-// 💡 기존 MockBean 대신 새로운 MockitoBean 패키지를 임포트합니다.
-import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDateTime
+
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 
 @WebMvcTest(EventController::class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -52,13 +56,24 @@ class EventControllerTest {
         )
         val mockPage = PageImpl(listOf(dummyResponse), PageRequest.of(0, 10), 1)
 
-        `when`(eventService.getEventList(any(Pageable::class.java))).thenReturn(mockPage)
+        // 💡 핵심 수정: getEventList가 아니라 searchEvents를 모킹(Mocking)합니다.
+        // 검색어(title, codeName, guName)는 null이 들어올 수 있으므로 anyOrNull()을 사용합니다.
+        // 💡 anyOrNull 뒤에 <String>을 붙여서 타입을 명확히 알려줍니다!
+        whenever(
+            eventService.searchEvents(
+                anyOrNull<String>(),
+                anyOrNull<String>(),
+                anyOrNull<String>(),
+                any() // Pageable은 보통 잘 유추하지만, 혹시 여기도 에러가 나면 any<Pageable>() 로 적어주세요.
+            )
+        ).thenReturn(mockPage)
 
         // when & then
         mockMvc.perform(
             get("/api/events")
                 .param("page", "0")
                 .param("size", "10")
+                // 💡 필요하다면 .param("title", "축제") 처럼 검색어 파라미터를 추가해 테스트할 수도 있습니다.
                 .accept(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)
@@ -82,7 +97,8 @@ class EventControllerTest {
             orgName = "서울시", inquiry = null, orgLink = null, hmpgAddr = null
         )
 
-        `when`(eventService.getEventDetail(eventId)).thenReturn(dummyDetail)
+        // 💡 핵심 수정 2: `when` 대신 whenever 사용
+        whenever(eventService.getEventDetail(eventId)).thenReturn(dummyDetail)
 
         // when & then
         mockMvc.perform(

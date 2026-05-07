@@ -16,15 +16,17 @@ class EventController(
     private val eventService: EventService
 ) {
 
-    // 💡 1. 행사 목록 전체 조회 (GET /api/events?page=0&size=10&sort=id,desc)
+    // 💡 1. 행사 목록 전체 조회 및 검색을 하나로 통합! (GET /api/events?title=축제&page=0)
     @GetMapping
     fun getEvents(
-        // 프론트에서 아무 조건도 안 보낼 경우 기본값: 한 페이지에 10개씩, 최신순(id 내림차순)
-        @PageableDefault(size = 10, sort = ["id"], direction = Sort.Direction.DESC)
-        pageable: Pageable
+        @RequestParam(required = false) title: String?,
+        @RequestParam(required = false) codeName: String?,
+        @RequestParam(required = false) guName: String?,
+        @PageableDefault(size = 10, sort = ["id"], direction = Sort.Direction.DESC) pageable: Pageable
     ): ResponseEntity<Page<EventListResponse>> {
 
-        val responsePage = eventService.getEventList(pageable)
+        // 검색어가 없으면(null) 자동으로 전체 목록이 반환되고, 있으면 필터링됩니다.
+        val responsePage = eventService.searchEvents(title, codeName, guName, pageable)
         return ResponseEntity.ok(responsePage)
     }
 

@@ -1,9 +1,14 @@
-# 📂 .github/workflows/deploy.yml
 name: Spring Boot CI/CD to EC2
 
 on:
   push:
-    branches: [ "main" ] # main 브랜치에 코드가 푸시되면 자동 실행
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ap-northeast-2
+  S3_BUCKET_NAME: event-notification-build-bucket # 곧 AWS에서 만들 버킷 이름
+  CODE_DEPLOY_APPLICATION_NAME: event-notification-deploy
+  CODE_DEPLOY_DEPLOYMENT_GROUP_NAME: event-notification-group
 
 jobs:
   build-and-deploy:
@@ -21,8 +26,29 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew clean build -x test # 배포 시에는 테스트를 건너뛰어 속도 향상
+        run: ./gradlew clean build -x test
 
-    # 💡 [면접 어필 포인트] 여기서부터는 AWS EC2로 파일을 전송하고 실행하는 스크립트가 들어갑니다.
-    # 면접에서는 "Github Actions를 통해 빌드된 .jar 파일을 AWS CodeDeploy나
-    # SCP를 통해 EC2로 전송하고, background(nohup)로 실행하도록 파이프라인을 구상했습니다." 라고 답변합니다.
+      # 1. 빌드 파일 압축
+      - name: Make zip file
+        run: zip -r ./practice-deploy.zip .
+      
+      # 2. AWS 인증 (GitHub Secrets에 미리 키를 등록해야 함)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3. S3에 업로드
+      - name: Upload to S3
+        run: aws s3 cp --region ap-northeast-2 ./practice-deploy.zip s3://$S3_BUCKET_NAME/practice-deploy.zip
+
+      # 4. CodeDeploy 배포 요청
+      - name: Code Deploy
+        run: |
+          aws deploy create-deployment \
+          --application-name ${{ env.CODE_DEPLOY_APPLICATION_NAME }} \
+          --deployment-config-name CodeDeployDefault.AllAtOnce \
+          --deployment-group-name ${{ env.CODE_DEPLOY_DEPLOYMENT_GROUP_NAME }} \
+          --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=practice-deploy.zip
