@@ -24,6 +24,25 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+          
+      # 💡 핵심 스텝: 빌드 직전에 GitHub Secrets를 모아서 secret 파일을 생성합니다.
+      - name: Make application-secret.yml
+        run: |
+         mkdir -p src/main/resources/secret
+         cd src/main/resources/secret
+         touch application-secret.yml
+         echo "spring:" >> application-secret.yml
+         echo "  datasource:" >> application-secret.yml
+         echo "    url: ${{ secrets.MYSQL_URL }}" >> application-secret.yml
+         echo "    driver-class-name: com.mysql.cj.jdbc.Driver" >> application-secret.yml
+         echo "    username: ${{ secrets.MYSQL_USERNAME }}" >> application-secret.yml
+         echo "    password: ${{ secrets.MYSQL_PASSWORD }}" >> application-secret.yml
+         echo "open-api:" >> application-secret.yml
+         echo "  seoul:" >> application-secret.yml
+         echo "    key: ${{ secrets.SEOUL_OPEN_API_KEY }}" >> application-secret.yml
+         echo "jwt:" >> application-secret.yml
+         echo "  access-secret: ${{ secrets.ACCESS_SECRET_KEY }}" >> application-secret.yml
+         echo "  refresh-secret: ${{ secrets.REFRESH_SECRET_KEY }}" >> application-secret.yml
 
       - name: Build with Gradle
         run: ./gradlew clean build -x test
