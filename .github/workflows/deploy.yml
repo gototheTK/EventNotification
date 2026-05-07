@@ -2,7 +2,7 @@ name: Spring Boot CI/CD to EC2
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 env:
   AWS_REGION: ap-northeast-2
