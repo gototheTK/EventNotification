@@ -1,28 +1,44 @@
-# 📂 src/main/resources/application.yml
 spring:
   profiles:
-    active: prod # 로컬에서는 H2(local)를, EC2에서는 prod를 씁니다.
+    active: prod
+
+app:
+  cors:
+    allowed-origins: "http://localhost:5173"
+
+api:
+  seoul:
+    base-url: "http://openapi.seoul.go.kr:8088"
 
 ---
 spring:
   config:
     activate:
       on-profile: local
-    import: "optional:classpath:/secret/application-secret.yml" # 💡 앞으로 2칸 뺐습니다!
+    import: "optional:classpath:/secret/application-secret.yml"
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: jdbc:postgresql://localhost:5432/eventdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
   jpa:
     hibernate:
       ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
 ---
 spring:
   config:
     activate:
-      on-profile: prod # EC2 운영 환경 세팅
-    import: "optional:classpath:/secret/application-secret.yml" # 💡 앞으로 2칸 뺐습니다!
+      on-profile: prod
+    import: "optional:classpath:/secret/application-secret.yml"
   jpa:
     hibernate:
-      ddl-auto: update # 🚨 운영 환경의 데이터 보호를 위해 반드시 update로 변경!
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

@@ -4,4 +4,4 @@ pluginManagement {
 		gradlePluginPortal()
 	}
 }
-rootProject.name = "board"
+rootProject.name = "event"
