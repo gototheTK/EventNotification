@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestClient
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -39,12 +38,14 @@ class EventSyncService(
         .toFormatter()
     private val geometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
+    // @Transactional 제거: 네트워크 I/O(API 호출 + 재시도) 동안 DB 커넥션을 점유하지 않는다.
+    // DB 쓰기는 saveAll() 내부의 @Transactional이 담당하여 트랜잭션 범위를 최소화한다.
     @Scheduled(cron = "0 0 3 * * ?")
-    @Transactional
     fun syncEventsFromSeoulApi() {
         val url = "$seoulApiBaseUrl/$openApiKey/json/culturalEventInfo/1/100/"
         log.info("🌐 서울시 문화행사 API 동기화 시작...")
 
+        // ① 네트워크 I/O — DB 커넥션 미점유
         val response = withRetry(maxRetries = 3, delayMs = 2000) {
             restClient.get().uri(url).retrieve().body(SeoulEventResponse::class.java)
         }
@@ -55,37 +56,47 @@ class EventSyncService(
         }
 
         val rows = response.culturalEventInfo.row
-        var savedCount = 0
 
-        for (row in rows) {
-            if (eventRepository.existsByTitle(row.title)) continue
-
-            val newEvent = Event(
-                title = row.title,
-                posterUrl = row.mainImg,
-                category = EventCategory(row.codeName, row.themeCode),
-                period = EventPeriod(
-                    startDate = parseDateSafe(row.startDate),
-                    endDate = parseDateSafe(row.endDate),
-                    dateText = row.dateText,
-                    proTime = row.proTime
-                ),
-                location = EventLocation(
-                    placeName = row.place,
-                    guName = row.guName,
-                    locationPoint = buildPoint(row.longitude, row.latitude)
-                ),
-                usageInfo = EventUsageInfo(row.isFree, row.useFee, row.useTarget),
-                detail = EventDetail(row.player, row.program, row.etcDesc),
-                organization = EventOrganization(
-                    row.orgName, row.inquiry, row.orgLink, row.hmpgAddr, row.ticket, row.rgstDate
+        // ② 중복 제외 후 신규 이벤트 수집 — 루프 안에서 개별 save() 금지
+        //    날짜 파싱 실패 행은 mapNotNull로 스킵하여 역전 구간(startDate > endDate) 저장을 방지한다.
+        val newEvents = rows
+            .filterNot { eventRepository.existsByTitle(it.title) }
+            .mapNotNull { row ->
+                val startDate = parseDateSafe(row.startDate)
+                val endDate   = parseDateSafe(row.endDate)
+                if (startDate == null || endDate == null) {
+                    log.warn("⚠️ 날짜 파싱 불가로 행 스킵 — 제목: \"${row.title}\"")
+                    return@mapNotNull null
+                }
+                Event(
+                    title = row.title,
+                    posterUrl = row.mainImg,
+                    category = EventCategory(row.codeName, row.themeCode),
+                    period = EventPeriod(
+                        startDate = startDate,
+                        endDate   = endDate,
+                        dateText  = row.dateText,
+                        proTime   = row.proTime
+                    ),
+                    location = EventLocation(
+                        placeName    = row.place,
+                        guName       = row.guName,
+                        locationPoint = buildPoint(row.longitude, row.latitude)
+                    ),
+                    usageInfo    = EventUsageInfo(row.isFree, row.useFee, row.useTarget),
+                    detail       = EventDetail(row.player, row.program, row.etcDesc),
+                    organization = EventOrganization(
+                        row.orgName, row.inquiry, row.orgLink, row.hmpgAddr, row.ticket, row.rgstDate
+                    )
                 )
-            )
-            eventRepository.save(newEvent)
-            savedCount++
+            }
+
+        // ③ DB 쓰기 — saveAll() 단일 트랜잭션으로 Batch Insert
+        if (newEvents.isNotEmpty()) {
+            eventRepository.saveAll(newEvents)
         }
 
-        log.info("✅ 서울시 문화행사 동기화 완료! (총 검토: ${rows.size}건, 신규 저장: ${savedCount}건)")
+        log.info("✅ 서울시 문화행사 동기화 완료! (총 검토: ${rows.size}건, 신규 저장: ${newEvents.size}건)")
     }
 
     /**
@@ -110,9 +121,10 @@ class EventSyncService(
         return null
     }
 
-    private fun parseDateSafe(dateString: String): LocalDateTime =
+    // null 반환 시 호출 측에서 해당 행 전체를 스킵하도록 설계되어 있다.
+    private fun parseDateSafe(dateString: String): LocalDateTime? =
         runCatching { LocalDateTime.parse(dateString, dateFormatter) }.getOrElse { e ->
-            log.warn("⚠️ 날짜 파싱 실패 - 입력값: \"$dateString\" (${e.message}). LocalDateTime.now()로 대체합니다.")
-            LocalDateTime.now()
+            log.warn("⚠️ 날짜 파싱 실패 - 입력값: \"$dateString\" (${e.message})")
+            null
         }
 }
