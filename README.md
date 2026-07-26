@@ -3,6 +3,9 @@
 사용자가 거주하거나 방문하는 지역의 다양한 문화행사 정보를 제공받고, 원하는 행사를 검색 및 '찜(Like)'할 수 있는 플랫폼입니다.
 **현재 초기 단계(v1.0)로 서울시 공공데이터 API를 우선 연동**하여 서비스 중이며, 추후 전국 지자체 데이터로 확장할 수 있도록 유연성과 확장성을 고려하여 아키텍처를 설계했습니다. 대용량 트래픽에 대비한 **안정적인 데이터 파이프라인 구축**과 **보안(JWT) 중심의 설계**에 집중했습니다.
 
+
+<img src="https://github.com/gototheTK/EventNotification/blob/master/ezgif-7b7736ca65d8f386.gif" width="800" height="400"> <br>
+
 ## 🚀 기술 스택 (Tech Stack)
 
 ### Backend
@@ -63,5 +66,3 @@
      access-secret: "Base64_인코딩된_임의의_긴_문자열"
      refresh-secret: "Base64_인코딩된_다른_임의의_긴_문자열"
 
-
-<img src="https://github.com/gototheTK/JavaSwingProject/blob/master/%EC%BA%A1%EC%B3%90%EC%98%81%EC%83%8112.gif?raw=true" width="800" height="400"> <br>
