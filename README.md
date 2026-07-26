@@ -62,3 +62,6 @@
    jwt:
      access-secret: "Base64_인코딩된_임의의_긴_문자열"
      refresh-secret: "Base64_인코딩된_다른_임의의_긴_문자열"
+
+
+<img src="https://github.com/gototheTK/JavaSwingProject/blob/master/%EC%BA%A1%EC%B3%90%EC%98%81%EC%83%8112.gif?raw=true" width="800" height="400"> <br>
